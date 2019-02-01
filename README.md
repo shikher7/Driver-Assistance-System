@@ -1,0 +1,2 @@
+# Automated-Driving-System
+In this project, we propose a prototype of an autonomous car driving software that will have the ability to drive by itself on road avoiding any obstacles and making turns on its own, also it will have the ability to understand traffic signs and act accordingly. We intend to showcase various safety and control features which can be incorporated in future Self-Driving Cars through our prototype software
