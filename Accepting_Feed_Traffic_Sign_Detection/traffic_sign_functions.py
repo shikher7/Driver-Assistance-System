@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Aug 25 19:46:21 2018
+Created on Sun Aug 19 19:22:06 2018
 
 @author: Jannis
 """
-import cv2
 import numpy as np
-import zxing
-#import socket
-#import time
+import cv2
 
 def sign_threshold(img):
+    '''
+    Thresholding function to search for traffic sign candidates
+    :param img: Single image to be thresholded
+    :return: Thresholded image data
+    '''
     # Stop
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h,s,v = cv2.split(img_hsv)
@@ -37,7 +39,7 @@ def sign_threshold(img):
     mask_5[(mask_5<130) & (mask_5>100)] = 255
    
     mask_all = np.zeros_like(mask_1) # Create all black image
-    mask_all[(mask_1 == 255) | (mask_2 == 255)] = 255 # Combine 2 images
+    mask_all[(mask_1 == 255) | (mask_2 == 255) | (mask_3 == 255) | (mask_4 == 255)] = 255 # Combine 2 images
     mask_all[mask_5==255] = 0
     kernel = np.ones((7,7), np.uint8)
     mask_all = cv2.dilate(mask_all, kernel, 4)
@@ -46,11 +48,14 @@ def sign_threshold(img):
 
     return mask_all, img
 
-# Define a function that takes an imag# start and stop positions in both x and y, 
-# window size (x and y dimensions),  
-# and overlap fraction (for both x and y)
 def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], 
                     xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
+    '''
+    Define a function that takes an image start and stop positions in both x and y, 
+    window size (x and y dimensions),  and overlap fraction (for both x and y)
+    :return: List of extracted windows
+    '''
+
     # If x and/or y start/stop positions not defined, set to image size
     if x_start_stop[0] == None:
         x_start_stop[0] = 0
@@ -100,6 +105,11 @@ def normalize(image_data, a=0.1, b=0.9):
     return a + (((image_data-np.min(image_data)) * (b - a)) / (np.max(image_data) - np.min(image_data)))
 
 def predict_sign(img_cropped, model):
+    '''
+    Predicting function to predict traffic sign in cropped image 
+    :param img: Single cropped image; trained model 
+    :return: prediction number (0-5); probability of prediction
+    '''
     img_cropped = cv2.resize(img_cropped, (32,32))
     img_cropped = normalize(img_cropped)
     img_cropped = np.expand_dims(img_cropped, axis=0)
@@ -109,83 +119,46 @@ def predict_sign(img_cropped, model):
     
     return pred_num, prob
 
-def read_qr_code(img, display = True):
-            
-    crop_img = img.copy()[600:1100, :500, :]
-    crop_img = cv2.resize(crop_img, (500,500))
-    
-    row, col = crop_img.shape[:2]    
-    
-    M = cv2.getRotationMatrix2D((col/2,row/2),310,1)
-    crop_img = cv2.warpAffine(crop_img,M,(col,row))
-            
-    new = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
-    new[new>95] = 255
-    new[new<=95] = 0
-    new = cv2.dilate(new, None, iterations=11)
-    
-    mask = np.zeros_like(new)
-    _,contours, _= cv2.findContours(new,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        #perimeter = cv2.arcLength(cnt,True)
-        x,y,w,h = cv2.boundingRect(cnt)
-        if abs(w-h) < 100 and area > 5000 and x+y != 0 and y+h < row and x+w < col:
-             cv2.fillPoly(mask, pts =[cnt], color=(255,255,255))
-             cv2.rectangle(new,(x,y),(x+w,y+h),(255,255,255),2)
-      
-    crop_img[mask==0] = 0 
-    #crop_img = crop_img[y:y+h,x:w+x]
-        
-    cv2.imwrite('detected_qr_code.jpg', crop_img)
-    if display:
-        cv2.imshow('crop', crop_img)
-        
+
+def sign_pipeline(path_to_images, model):
+    '''
+    '''
+    prev_pred = 0
+    for img_name in path_to_images:
+        image = cv2.imread(img_name)
+        image = cv2.resize(image, (640,320))
+        img_2 = image.copy()
+        mask, image = sign_threshold(image)
+        windows = slide_window(image, x_start_stop=[480, None], y_start_stop=[70, 180], 
+                                        xy_window=(32, 32), xy_overlap=(0.25, 0.25))
+        img_tiny = []
+        img_sign = None
+        for window in windows:
+            #cv2.rectangle(image, window[0], window[1], (0,0,255), 4) # show all boxes
+            if np.sum(mask[window[0][1]:window[1][1],window[0][0]:window[1][0]]) <= 100000:
+                next
+            else:
+             #   cv2.rectangle(image, window[0], window[1], (0,0,255), 4) # show thresholded boxes
+                img_cropped =  img_2[window[0][1]:window[1][1],window[0][0]:window[1][0],:]
+                img_cropped_copy = img_cropped.copy()
+                pred_num, prob = predict_sign(img_cropped, model)
+                if pred_num != 0 and prob > 0.99:
+                    #cv2.imwrite('test_new/'+str(time.time())+'_'+str(pred_num)+'_.jpg', image) #img_cropped_copy
+                    if  prev_pred == pred_num:
+                        img_tiny = img_cropped_copy      
+                        img_sign = cv2.imread('traffic_sign_img/sign_'+str(pred_num)+'.jpg')
+                        cv2.rectangle(image, window[0], window[1], (0,255,0), 4)
+                    prev_pred = pred_num
+                    
+        if len(img_tiny) != 0:
+            y_offset = 60; x_offset = 0
+            image[y_offset:y_offset+img_sign.shape[0], x_offset:x_offset+img_sign.shape[1]] = img_sign
+            y_offset = img_sign.shape[0] + 60
+            image[y_offset:y_offset+img_tiny.shape[0], x_offset:x_offset+img_tiny.shape[1]] = img_tiny 
+
+        cv2.imshow('image', image)
         cv2.waitKey(0)
-        cv2.destroyAllWindows() 
-                
-    reader = zxing.BarCodeReader()
-    barcode = reader.decode('detected_qr_code.jpg')
-    barrier_address = barcode.raw
+        cv2.destroyAllWindows()
+        #cv2.imwrite('test_new/'+str(time.time())+'_'+str(pred_num)+'_.jpg', image) #img_cropped_copy
     
-    return barrier_address
-
-def hough_lines(img_binary, rho=1, theta=np.pi/180, threshold=15, min_line_len=50, max_line_gap=40):
-    """
-    img_binary should be the output of a binary threshold transform. 
-    img_org is original image to be drawn on     
-    Returns an image with hough lines drawn + text of line curvature in top left corner
-    """    
-    lines = cv2.HoughLines(img_binary, rho, theta, threshold, min_line_len, max_line_gap)
-    for rho_new, theta_new in lines[0]:
-        a = np.cos(theta_new)
-        b = np.sin(theta_new)
-        x0 = a*rho_new
-        y0 = b*rho_new
-        x1 = int(x0 + 1000*(-b))
-        y1 = int(y0 + 1000*(a))
-        x2 = int(x0 - 1000*(-b))
-        y2 = int(y0 - 1000*(a))
-            
-        slope = (y2-y1)/(x2-x1)        
-
-    return slope
-
-def barrier_motion(img, first_frame_barrier):       
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (21, 21), 0)
-    
- 
-    frameDelta = cv2.absdiff(first_frame_barrier, gray)
-    thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
- 
-    # dilate the thresholded image to fill in holes, then find contours
-	# on thresholded image
-    thresh = cv2.dilate(thresh, None, iterations=5)
-        
-    if np.sum(thresh) > 200000:
-        slope = hough_lines(thresh)
-    else:
-        slope = 0
-
-    return slope       
+    return 0
