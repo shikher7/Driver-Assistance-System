@@ -1,5 +1,5 @@
 ## Theoritical Refrences
-->HOG Descriptor Explanation - https://www.youtube.com/watch?v=4ESLTAd3IOM
+->HOG Descriptor Explanation - https://www.youtube.com/watch?v=4ESLTAd3IOM \
 ->Tracking Basic - https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_video/py_meanshift/py_meanshift.html#meanshift-and-camshift
 ___
 ## Code Refrences
