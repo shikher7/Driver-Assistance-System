@@ -53,27 +53,6 @@ class SVM(StatModel):
         return self.model.predict(samples)[1].ravel()
 
 
-def evaluate_model(model, data, samples, labels):
-    resp = model.predict(samples)
-    print(resp)
-    err = (labels != resp).mean()
-    print('Accuracy: %.2f %%' % ((1 - err)*100))
-
-    confusion = np.zeros((10, 10), np.int32)
-    for i, j in zip(labels, resp):
-        confusion[int(i), int(j)] += 1
-    print('confusion matrix:')
-    print(confusion)
-
-    vis = []
-    for img, flag in zip(data, resp == labels):
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        if not flag:
-            img[...,:2] = 0
-        
-        vis.append(img)
-    return mosaic(16, vis)
-
 def preprocess_simple(data):
     return np.float32(data).reshape(-1, SIZE*SIZE) / 255.0
 
@@ -96,19 +75,48 @@ def get_hog() :
 
     return hog
 
+##(This function Only Required with testing)
+#def evaluate_model(model, data, samples, labels):
+#    resp = model.predict(samples)
+#    print(resp)
+#    err = (labels != resp).mean()
+#    print('Accuracy: %.2f %%' % ((1 - err)*100))
+#
+#    confusion = np.zeros((10, 10), np.int32)
+#    for i, j in zip(labels, resp):
+#        confusion[int(i), int(j)] += 1
+#    print('confusion matrix:')
+#    print(confusion)
+#
+#    vis = []
+#    for img, flag in zip(data, resp == labels):
+#        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+#        if not flag:
+#            img[...,:2] = 0
+#        
+#        vis.append(img)
+#    return mosaic(16, vis)
 
 if __name__ == '__main__':
+    
+#   #Currently Testing functionality is not enabled (uncomment some lines to enable)
+    
     print('Dataset of Road Sign Images will be trained..')
     data, labels = load_road_sign_dataset()
     print(data.shape)
-    rand = np.random.RandomState(10)
-#    Random data contains the new shuffle data
-    random_data = rand.permutation(len(data))
-    data, labels = data[random_data], labels[random_data]
+    
+#    #Random data contains the new shuffle data (only Required with testing)
+    
+#    rand = np.random.RandomState(10)    
+#    random_data = rand.permutation(len(data))
+#    data, labels = data[random_data], labels[random_data]
     
     print('Fixing the rotation of the images')
     fixed_rotation = list(map(deskew, data))
     
+#   #HOG helps in compressing the image into HOG descriptors (difference vectors with magnitude)
+#   #which are then used in training of the SVM Model
+
     print('Getting the HOG parameters')
     hog = get_hog()
 
@@ -117,17 +125,22 @@ if __name__ == '__main__':
     for img in fixed_rotation:
         hog_descriptors.append(hog.compute(img))
     hog_descriptors = np.squeeze(hog_descriptors)
+    
+#    #Spliting data into testing and training (only Required with testing)   
 
-    print('Spliting data into training (90%) and test set (10%)... ')
-    train_n=int(0.9*len(hog_descriptors))
-    data_train, data_test = np.split(fixed_rotation, [train_n])
-    hog_descriptors_train, hog_descriptors_test = np.split(hog_descriptors, [train_n])
-    labels_train, labels_test = np.split(labels, [train_n])
+#    print('Spliting data into training (90%) and test set (10%)... ')
+#    train_n=int(0.9*len(hog_descriptors))
+#    data_train, data_test = np.split(fixed_rotation, [train_n])
+#    hog_descriptors_train, hog_descriptors_test = np.split(hog_descriptors, [train_n])
+#    labels_train, labels_test = np.split(labels, [train_n])
     
     
     print('Training SVM model ...')
     model = SVM()
-    model.train(hog_descriptors_train, labels_train)
+    model.train(hog_descriptors, labels)
+#    model.train(hog_descriptors_train, labels_train) (only Required with testing)
+
+#   #Call Evaluate_Model for checking model effciency using test data(only Required with testing)
 
     print('Saving SVM model ...')
     model.save('data_svm.dat')
