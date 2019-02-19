@@ -53,10 +53,6 @@ class SVM(StatModel):
         return self.model.predict(samples)[1].ravel()
 
 
-def preprocess_simple(data):
-    return np.float32(data).reshape(-1, SIZE*SIZE) / 255.0
-
-
 def get_hog() : 
     winSize = (20,20)
     blockSize = (10,10)
