@@ -7,14 +7,17 @@ import math
 from classification import getLabel,training
 
 SIGNS = ["OTHER",
-        "STOP",
-        "TURN LEFT",
-        "TURN RIGHT",
-        "DO NOT TURN LEFT",
-        "DO NOT TURN RIGHT",
-        "ONE WAY",
-        "SPEED LIMIT",
-        "NOT FOUND"
+        "Horn Prohibited",
+        "Stop",
+        "No Parking",
+        "Compulsory Keep left",
+        "Pedestrian Crossing Ahead",
+        "Slippery Road Ahead",
+        "Round About",
+        "Speed Limit",
+        "No Entry",
+        "Hospital Ahead",
+        "OTHER"
         ]
 
 # Clean all previous file
@@ -156,7 +159,7 @@ def localization(image, min_size_components, similitary_contour_with_circle, mod
     if sign is not None:
         sign_type = getLabel(model, sign)
         print(sign_type)
-        sign_type = sign_type if sign_type <= 8 else 0
+        sign_type = sign_type if sign_type <= 11 else 0
         text = SIGNS[sign_type]
         cv2.imwrite(str(count)+'_'+text+'.png', sign)
     else:
@@ -181,8 +184,8 @@ def remove_other_color(img):
     upper_white = np.array([255,255,255])
     mask_white = cv2.inRange(hsv, lower_white, upper_white)
 
-    lower_red = np.array([0, 50, 50])
-    upper_red = np.array([10, 255, 255])
+    lower_red = np.array([0, 100, 180])
+    upper_red = np.array([0, 255, 255])
     mask0 = cv2.inRange(hsv, lower_red, upper_red)
 
     # upper mask (170-180)
@@ -194,10 +197,10 @@ def remove_other_color(img):
     mask_red = mask0 + mask1
     # mask_red = cv2.inRange( hsv, lower_red, upper_red)
 
-    mask_1 = cv2.bitwise_or(mask_blue, mask_white)
-    mask_2 = cv2.bitwise_or(mask_1, mask_red)
+    mask_1 = cv2.bitwise_or(mask_blue, mask_red)
+    mask_2 = cv2.bitwise_or(mask_1, mask_white)
     # return cv2.bitwise_or(mask_red, mask_blue)
-    return mask_2
+    return mask_1
 
 def main():
 	#Clean previous image    
