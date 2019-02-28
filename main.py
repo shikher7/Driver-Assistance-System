@@ -80,6 +80,7 @@ def findContour(image):
 def contourIsSign(perimeter, centroid, threshold):
     #  perimeter, centroid, threshold
     # # Compute signature of contour
+    threshold=0.8
     result=[]
     for p in perimeter:
 #        print (p)
@@ -92,9 +93,9 @@ def contourIsSign(perimeter, centroid, threshold):
     # Check signature of contour.
     temp = sum(s for s in signature)
     temp = temp / len(signature)
-    if temp > threshold: # is  the sign
+    if temp > threshold or len(cv2.approxPolyDP(perimeter, 0.25* (cv2.arcLength(perimeter,  True)), True))==3: # is  the sign
         return True, max_value + 2
-    else:                 # is not the sign
+    else:
         return False, max_value + 2
 
 #crop sign 
@@ -131,19 +132,23 @@ def findLargestSign(image, contours, threshold, distance_theshold):
 
 
 def localization(image, min_size_components, similitary_contour_with_circle, model, count, current_sign_type):
+
+
     original_image = image.copy()
+    image = cv2.bitwise_and(original_image, original_image, mask=remove_other_color(original_image))
+    cv2.imshow("Colored feature extraction",image)
     binary_image = preprocess_image(image)
 
     binary_image = removeSmallComponents(binary_image, min_size_components)
 #    cv2.imshow('BINARY', binary_image)
 
-    binary_image = cv2.bitwise_and(binary_image,binary_image, mask=remove_other_color(image))
+    # binary_image = cv2.bitwise_and(binary_image,binary_image, mask=remove_other_color(image))
     cv2.imshow('BINARY IMAGE', binary_image)
     
     # Preprocesing Done
     contours = findContour(binary_image)
     #signs, coordinates = findSigns(image, contours, similitary_contour_with_circle, 15)
-    sign, coordinate = findLargestSign(original_image, contours, similitary_contour_with_circle, 15)
+    sign, coordinate = findLargestSign(original_image, contours, similitary_contour_with_circle, 25)
     
     text = ""
     sign_type = -1
@@ -168,21 +173,30 @@ def remove_other_color(img):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # define range of blue color in HSV
-    lower_blue = np.array([101,50,38])
-    upper_blue = np.array([110,255,255])
+    lower_blue = np.array([101,50,28])
+    upper_blue = np.array([130,255,255])
     mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
 
     lower_white = np.array([0,0,125])
     upper_white = np.array([255,255,255])
     mask_white = cv2.inRange(hsv, lower_white, upper_white)
- 
-    lower_red = np.array([160,20,70])
-    upper_red = np.array([190,255,255])
-    mask_red = cv2.inRange( hsv, lower_red, upper_red)
+
+    lower_red = np.array([0, 50, 50])
+    upper_red = np.array([10, 255, 255])
+    mask0 = cv2.inRange(hsv, lower_red, upper_red)
+
+    # upper mask (170-180)
+    lower_red = np.array([170, 50, 50])
+    upper_red = np.array([180, 255, 255])
+    mask1 = cv2.inRange(hsv, lower_red, upper_red)
+
+    # join my masks
+    mask_red = mask0 + mask1
+    # mask_red = cv2.inRange( hsv, lower_red, upper_red)
 
     mask_1 = cv2.bitwise_or(mask_blue, mask_white)
     mask_2 = cv2.bitwise_or(mask_1, mask_red)
-
+    # return cv2.bitwise_or(mask_red, mask_blue)
     return mask_2
 
 def main():
