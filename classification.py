@@ -152,5 +152,7 @@ def getLabel(model, data):
     hog = get_hog()
     hog_descriptors = np.array([hog.compute(img_deskewed[0])])
     hog_descriptors = np.reshape(hog_descriptors, [-1, hog_descriptors.shape[1]])
-    return int(model.predict(hog_descriptors)[0])
+    pred = model.predict(hog_descriptors)[0]
+#    print("pred " + pred)
+    return int(pred)
 
