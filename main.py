@@ -116,6 +116,7 @@ def cropSign(image, coordinate):
 def findLargestSign(image, contours, threshold, distance_theshold):
     max_distance = 0
     coordinate = None
+    coordinates = None
     sign = None
     for c in contours:
         M = cv2.moments(c)
@@ -129,8 +130,10 @@ def findLargestSign(image, contours, threshold, distance_theshold):
             coordinate = np.reshape(c, [-1,2])
             left, top = np.amin(coordinate, axis=0)
             right, bottom = np.amax(coordinate, axis = 0)
-            coordinate = [(left-5,top-5),(right+5,bottom+5)]
+            coordinate = [(left-2,top-2),(right+2,bottom+2)]
             sign = cropSign(image,coordinate)
+#            coordinates = [(left,top),(right,bottom)]
+
     return sign, coordinate
 
 
@@ -159,7 +162,7 @@ def localization(image, min_size_components, similitary_contour_with_circle, mod
     if sign is not None:
         sign_type = getLabel(model, sign)
         print(sign_type)
-        sign_type = sign_type if sign_type <= 11 else 0
+        sign_type = sign_type if sign_type <= 10 else 0
         text = SIGNS[sign_type]
         cv2.imwrite(str(count)+'_'+text+'.png', sign)
     else:
@@ -184,8 +187,8 @@ def remove_other_color(img):
     upper_white = np.array([255,255,255])
     mask_white = cv2.inRange(hsv, lower_white, upper_white)
 
-    lower_red = np.array([0, 100, 180])
-    upper_red = np.array([0, 255, 255])
+    lower_red = np.array([0, 50, 50])
+    upper_red = np.array([10, 255, 255])
     mask0 = cv2.inRange(hsv, lower_red, upper_red)
 
     # upper mask (170-180)
@@ -221,7 +224,7 @@ def main():
 
     # Define the codec and create VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi',fourcc, fps , (640,480))
+    out = cv2.VideoWriter('output.avi',fourcc, 20 , (640,480))
 
     # initialize the termination criteria for cam shift, indicating
     # a maximum of ten iterations or movement by a least one pixel

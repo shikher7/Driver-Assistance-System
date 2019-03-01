@@ -6,7 +6,7 @@ from os import listdir
 
 #Parameter
 SIZE = 32
-CLASS_NUMBER = 13
+CLASS_NUMBER = 12
 
 def load_traffic_dataset():
     dataset = []
