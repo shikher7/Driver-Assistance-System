@@ -2,57 +2,47 @@ import cv2
 import numpy as np
 from os import listdir
 
-# local modules
 
-#Parameter
-SIZE = 32
-CLASS_NUMBER = 12
+DIMENSION = 64
+NO_OF_CLASSES = 12
 
-def load_traffic_dataset():
-    dataset = []
-    labels = []
-    for sign_type in range(CLASS_NUMBER):
-        sign_list = listdir("./dataset/{}".format(sign_type))
-        for sign_file in sign_list:
-            if '.png' in sign_file:
-                path = "./dataset/{}/{}".format(sign_type,sign_file)
-                print(path)
+def load_dataset():
+    signDataset = []
+    signLabels = []
+    for type in range(NO_OF_CLASSES):
+        list = listdir("./dataset/{}".format(type))
+        for file in list:
+            if '.png' in file:
+                path = "./dataset/{}/{}".format(type,file)
                 img = cv2.imread(path,0)
-                img = cv2.resize(img, (SIZE, SIZE))
-                img = np.reshape(img, [SIZE, SIZE])
-                dataset.append(img)
-                labels.append(sign_type)
-    return np.array(dataset), np.array(labels)
+                img = cv2.resize(img, (DIMENSION, DIMENSION))
+                img = np.reshape(img, [DIMENSION, DIMENSION])
+                signDataset.append(img)
+                signLabels.append(type)
+    return np.array(signDataset), np.array(signLabels)
 
 
-def deskew(img):
-    m = cv2.moments(img)
-#    print(m)
-    if abs(m['mu02']) < 1e-2:
-        return img.copy()
-    skew = m['mu11']/m['mu02']
-    M = np.float32([[1, skew, -0.5*SIZE*skew], [0, 1, 0]])
-    img = cv2.warpAffine(img, M, (SIZE, SIZE), flags=cv2.WARP_INVERSE_MAP | cv2.INTER_LINEAR)
-#    cv2.imshow('image',img)
-#    if cv2.waitKey(0):
-#        cv2.destroyAllWindows()
-    return img
 
-class StatModel(object):
+class Model(object):
     def load(self, fn):
-        self.model.load(fn)  # Known bug: https://github.com/opencv/opencv/issues/4969
+        self.model.load(fn)
     def save(self, fn):
         self.model.save(fn)
 
-class SVM(StatModel):
-    def __init__(self, C = 12.5, gamma = 0.50625):
+class SVM(Model):
+    # Definig SVM model with paramenter respective to training of images
+    def __init__(self):
         self.model = cv2.ml.SVM_create()
-        self.model.setGamma(gamma)
-        self.model.setC(C)
+        self.model.setGamma(0.50625)
+        self.model.setC(12.5)
+
+        # RBF Kernel is used because it is better in dealing with images as input
+
         self.model.setKernel(cv2.ml.SVM_RBF)
         self.model.setType(cv2.ml.SVM_C_SVC)
 
     def train(self, samples, responses):
+
         self.model.train(samples, cv2.ml.ROW_SAMPLE, responses)
 
     def predict(self, samples):
@@ -60,99 +50,48 @@ class SVM(StatModel):
         return self.model.predict(samples)[1].ravel()
 
 
-def evaluate_model(model, data, samples, labels):
-    resp = model.predict(samples)
-    print(resp)
-    err = (labels != resp).mean()
-    print('Accuracy: %.2f %%' % ((1 - err)*100))
 
-    confusion = np.zeros((10, 10), np.int32)
-    for i, j in zip(labels, resp):
-        confusion[int(i), int(j)] += 1
-    print('confusion matrix:')
-    print(confusion)
-
-    vis = []
-    for img, flag in zip(data, resp == labels):
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        if not flag:
-            img[...,:2] = 0
-        
-        vis.append(img)
-    return mosaic(16, vis)
-
-def preprocess_simple(data):
-    return np.float32(data).reshape(-1, SIZE*SIZE) / 255.0
-
-
-def get_hog() : 
-    winSize = (20,20)
-    blockSize = (10,10)
-    blockStride = (5,5)
-    cellSize = (10,10)
-    nbins = 9
+def get_HOGDescriptor() :
+    # Various Parameters used for converting image to HOG format
     derivAperture = 1
     winSigma = -1.
+    signedGradient = True
+    winSize = (20, 20)
+    blockSize = (10, 10)
+    blockStride = (5, 5)
     histogramNormType = 0
     L2HysThreshold = 0.2
     gammaCorrection = 1
     nlevels = 64
-    signedGradient = True
+    cellSize = (10,10)
+    nbins = 9
+    hog_descriptor = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels, signedGradient)
+    return hog_descriptor
 
-    hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels, signedGradient)
 
-    return hog
-
-
-def training():
-    print('Loading data from data.png ... ')
-    # Load data.
-    #data, labels = load_data('data.png')
-    data, labels = load_traffic_dataset()
-    print(data.shape)
-    print('Shuffle data ... ')
-    # Shuffle data
-    rand = np.random.RandomState(10)
-    shuffle = rand.permutation(len(data))
-    data, labels = data[shuffle], labels[shuffle]
-    
-    print('Deskew images ... ')
-    data_deskewed = list(map(deskew, data))
-    
-    print('Defining HoG parameters ...')
-    # HoG feature descriptor
-    hog = get_hog()
-
-    print('Calculating HoG descriptor for every image ... ')
+def Load_Model():
+    data, labels = load_dataset()
+    hog = get_HOGDescriptor()
     hog_descriptors = []
-    for img in data_deskewed:
+    for img in data:
         hog_descriptors.append(hog.compute(img))
     hog_descriptors = np.squeeze(hog_descriptors)
-
-    print('Spliting data into training (90%) and test set (10%)... ')
-    train_n=int(0.9*len(hog_descriptors))
-    data_train, data_test = np.split(data_deskewed, [train_n])
-    hog_descriptors_train, hog_descriptors_test = np.split(hog_descriptors, [train_n])
-    labels_train, labels_test = np.split(labels, [train_n])
-    
-    
-    print('Training SVM model ...')
     model = SVM()
-    model.train(hog_descriptors_train, labels_train)
-
-    print('Saving SVM model ...')
+    model.train(hog_descriptors, labels)
     model.save('data_svm.dat')
+    print("Model Loaded Successfully..")
     return model
 
 def getLabel(model, data):
+    # Converting to recieved image to grayscale
     gray = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
-    img = [cv2.resize(gray,(SIZE,SIZE))]
-    #print(np.array(img).shape)
-    img_deskewed = list(map(deskew, img))
-    hog = get_hog()
-    hog_descriptors = np.array([hog.compute(img_deskewed[0])])
+    # Converting Dimension of the image
+    img = [cv2.resize(gray,(DIMENSION,DIMENSION))]
+    # Calcualting HOG Descriptor for the image
+    hog = get_HOGDescriptor()
+    hog_descriptors = np.array([hog.compute(img[0])])
     hog_descriptors = np.reshape(hog_descriptors, [-1, hog_descriptors.shape[1]])
+    # Predicting the class of the image or sign Type
     pred = model.predict(hog_descriptors)[0]
-#    print("pred " + pred)
     return int(pred)
 
