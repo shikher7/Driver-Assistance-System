@@ -1,26 +1,8 @@
 import cv2
 import numpy as np
 from os import listdir
-
-
 DIMENSION = 32
 NO_OF_CLASSES = 12
-
-def load_dataset():
-    signDataset = []
-    signLabels = []
-    for type in range(NO_OF_CLASSES):
-        list = listdir("./dataset/{}".format(type))
-        for file in list:
-            if '.png' in file:
-                path = "./dataset/{}/{}".format(type,file)
-                img = cv2.imread(path,0)
-                img = cv2.resize(img, (DIMENSION, DIMENSION))
-                img = np.reshape(img, [DIMENSION, DIMENSION])
-                signDataset.append(img)
-                signLabels.append(type)
-    return np.array(signDataset), np.array(signLabels)
-
 
 
 class Model(object):
@@ -51,6 +33,26 @@ class SVM(Model):
 
 
 
+def load_dataset():
+    signDataset = []
+    signLabels = []
+    for type in range(NO_OF_CLASSES):
+        list = listdir("./dataset/{}".format(type))
+        for file in list:
+            if '.png' in file:
+                path = "./dataset/{}/{}".format(type,file)
+                print(path)
+                img = cv2.imread(path,0)
+                img = cv2.resize(img, (DIMENSION, DIMENSION))
+                img = np.reshape(img, [DIMENSION, DIMENSION])
+                signDataset.append(img)
+                signLabels.append(type)
+    return np.array(signDataset), np.array(signLabels)
+
+
+
+
+
 def get_HOGDescriptor() :
     # Various Parameters used for converting image to HOG format
     derivAperture = 1
@@ -69,29 +71,26 @@ def get_HOGDescriptor() :
     return hog_descriptor
 
 
-def Load_Model():
+
+if __name__ == '__main__':
+    print('Loading road sign data..')
     data, labels = load_dataset()
+    print(data.shape)
+
+    print('Getting HoG parameters ...')
+
     hog = get_HOGDescriptor()
+
+    print('Computing HoG descriptors... ')
     hog_descriptors = []
     for img in data:
         hog_descriptors.append(hog.compute(img))
     hog_descriptors = np.squeeze(hog_descriptors)
+
+    print('Training SVM model ...')
     model = SVM()
     model.train(hog_descriptors, labels)
-    model.save('data_svm.dat')
-    print("Model Loaded Successfully..")
-    return model
 
-def getLabel(model, data):
-    # Converting to recieved image to grayscale
-    gray = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
-    # Converting Dimension of the image
-    img = [cv2.resize(gray,(DIMENSION,DIMENSION))]
-    # Calcualting HOG Descriptor for the image
-    hog = get_HOGDescriptor()
-    hog_descriptors = np.array([hog.compute(img[0])])
-    hog_descriptors = np.reshape(hog_descriptors, [-1, hog_descriptors.shape[1]])
-    # Predicting the class of the image or sign Type
-    pred = model.predict(hog_descriptors)[0]
-    return int(pred)
+    print('Saving SVM model ...')
+    model.save('SVM_model.dat')
 

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from math import sqrt
 import os
-from classification import getLabel,Load_Model
+from model_loader import getLabel,Load_Model
 
 
 #Type of Road signs which present in our machine learing model
