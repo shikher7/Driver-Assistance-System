@@ -3,7 +3,7 @@ import numpy as np
 from os import listdir
 
 
-DIMENSION = 64
+DIMENSION = 32
 NO_OF_CLASSES = 12
 
 def load_dataset():
