@@ -81,7 +81,7 @@ def findContour(image):
 def contourIsSign(contour, centroid, threshold):
     result=[]
     for cnt in contour:
-        cnt = p[0]
+        cnt = cnt[0]
         distance = sqrt((cnt[0] - centroid[0])**2 + (cnt[1] - centroid[1])**2)
         result.append(distance)
     max_value = max(result)
@@ -221,7 +221,15 @@ def main():
             cv2.rectangle(image, coordinate[0],coordinate[1], (255, 255, 255), 1)
         if sign_type!=-1:
             print("Sign: " + SIGNS[sign_type])
-
+        cv2.imshow('Result', image)
+        count = count + 1
+        # Write to video
+        out.write(image)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    print("Finish {} frames".format(count))
+    cv2.destroyAllWindows()
+    return
 
 if __name__ == '__main__':
     main()
