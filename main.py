@@ -1,8 +1,12 @@
+import pickle
+from sklearn import svm
 import cv2
 import numpy as np
 from math import sqrt
 import os
-from model_loader import getLabel,Load_Model
+# from model_loader import getLabel,Load_Model
+
+from training import getSign
 
 
 #Type of Road signs which present in our machine learing model
@@ -150,7 +154,7 @@ def Locailizing_ROI(image, min_size_components, circle_detection_threshold, mode
     sign_type = -1
 
     if sign is not None:
-        sign_type = getLabel(model, sign)
+        sign_type = getSign(model, sign)
         print(sign_type)
         sign_type = sign_type if sign_type <= 10 else 0
         text = SIGNS[sign_type]
@@ -199,7 +203,9 @@ def main():
 	#Clean previously saved images
     clean_images()
     print('Loading Model...')
-    model = Load_Model()
+    # model = Load_Model()
+    with open('svm_model.pkl', 'rb') as file:
+        model = pickle.load(file)
     print("Starting Detection...")
     vidcap = cv2.VideoCapture(0)
 #    'http://192.168.43.63:8080/video' for IP Webcam
