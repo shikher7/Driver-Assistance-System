@@ -18,7 +18,6 @@ SIGNS = ["OTHER",
          "Round About",
          "Speed Limit",
          "No Entry",
-         "Hospital Ahead",
          "OTHER"
          ]
 
@@ -54,7 +53,7 @@ def check_is_contour_Sign(contour, centroid, threshold):
 
     #   Condition for checking the shape
 
-    if temp > threshold or len(cv2.approxPolyDP(contour, 0.25 * (cv2.arcLength(contour, True)), True)) == 3:
+    if temp > threshold or len(cv2.approxPolyDP(contour, 0.15 * (cv2.arcLength(contour, True)), True)) == 3 or len(cv2.approxPolyDP(contour, 0.25 * (cv2.arcLength(contour, True)), True)) == 4:
         return True, max_value + 2
     else:
         return False, max_value + 2
@@ -149,7 +148,7 @@ def Locailizing_ROI(image, min_size_components, circle_detection_threshold, mode
         print(sign_type)
         sign_type = sign_type if sign_type <= 10 else 0
         text = SIGNS[sign_type]
-        cv2.imwrite(str(count) + '_' + text + '.png', sign)
+        cv2.imwrite("1"+'_' +str(count) + '_' + text + '.png', sign)
     else:
         sign_type = 0
 
@@ -204,7 +203,7 @@ def main():
     with open('svm_model.pkl', 'rb') as file:
         model = pickle.load(file)
     print("Starting Detection...")
-    vidcap = cv2.VideoCapture(0)
+    vidcap = cv2.VideoCapture('http://192.168.43.233:8080/video')
 
     #    For IP Webcam 'http://192.168.43.63:8080/video'
 
