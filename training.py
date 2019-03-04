@@ -26,7 +26,7 @@ def load_dataset():
                 img = np.reshape(img, [DIMENSION, DIMENSION])
                 signDataset.append(img)
                 signLabels.append(type)
-                # time.sleep(0.01)
+                time.sleep(0.01)
     return np.array(signDataset), np.array(signLabels)
 
 
@@ -95,9 +95,10 @@ if __name__ == '__main__':
     print("Confusion Matrix:")
     print(classification_report(labels_test, response))
     print("Accuracy: " + str(accuracy_score(labels_test, response) * 100))
-    print('Saving SVM model ...')
-    with open('svm_model.pkl', 'wb') as file:
-        pickle.dump(model, file)
+    # print('Saving SVM model ...')
+    # with open('svm_model.pkl', 'wb') as file:
+    #     pickle.dump.0
+    #     2(model, file)
 
 
 
