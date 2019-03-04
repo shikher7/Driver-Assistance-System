@@ -18,7 +18,6 @@ SIGNS = ["OTHER",
          "Round About",
          "Speed Limit",
          "No Entry",
-         "Hospital Ahead",
          "OTHER"
          ]
 
@@ -54,7 +53,7 @@ def check_is_contour_Sign(contour, centroid, threshold):
 
     #   Condition for checking the shape
 
-    if temp > threshold or len(cv2.approxPolyDP(contour, 0.25 * (cv2.arcLength(contour, True)), True)) == 3:
+    if temp > threshold or len(cv2.approxPolyDP(contour, 0.15 * (cv2.arcLength(contour, True)), True)) == 3  or len(cv2.approxPolyDP(contour, 0.25 * (cv2.arcLength(contour, True)), True)) == 4:
         return True, max_value + 2
     else:
         return False, max_value + 2
@@ -204,13 +203,13 @@ def main():
     with open('svm_model.pkl', 'rb') as file:
         model = pickle.load(file)
     print("Starting Detection...")
-    vidcap = cv2.VideoCapture(0)
+    vidcap = cv2.VideoCapture("http://192.168.43.233:8080/video")
 
     #    For IP Webcam 'http://192.168.43.63:8080/video'
 
     #   Codec For Saving Output Video
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi', fourcc, 20, (640, 480))
+    out = cv2.VideoWriter('output.avi', fourcc, 10, (640, 480))
     circle_detection_threshold = 0.8  # parameter
     count = 0
     current_sign = None
